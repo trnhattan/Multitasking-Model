@@ -127,3 +127,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+datasets/*
+!datasets/.gitkeep
+dataset/*
+!dataset/.gitkeep
+
+test.py

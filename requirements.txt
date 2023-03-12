@@ -1,0 +1,7 @@
+torch==1.12.1+cu116 
+torchvision==0.13.1+cu116 
+numpy
+tqdm
+torch-summary
+
+--extra-index-url https://download.pytorch.org/whl/cu116
