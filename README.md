@@ -8,3 +8,5 @@ For convenient and bug-free, please use conda virtual enviroment then execute th
 ```
 $ pip install -r requirements.txt
 ```
+
+## Inference
