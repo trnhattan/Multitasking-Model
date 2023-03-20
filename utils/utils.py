@@ -3,9 +3,23 @@ import logging
 import logging.config
 import platform
 
-__ALL__ = ["LOGGER", "colorstr", 'emojis']
+from ruamel.yaml import YAML
+from ruamel.yaml.compat import StringIO
 
+__ALL__ = ["WORKING_DIR", "LOGGER", "colorstr", 'emojis']
+
+WORKING_DIR = os.getcwd()
 LOGGING_NAME = 'Multitasking-Model'
+
+class YAMLstr(YAML):
+    def dump(self, data, stream=None, **kw):
+        inefficient = False
+        if stream is None:
+            inefficient = True
+            stream = StringIO()
+        YAML.dump(self, data, stream, **kw)
+        if inefficient:
+            return stream.getvalue()
 
 def set_logging(name=LOGGING_NAME, verbose=True):
     ''' Logging configs, based on YOLOv5 repository.
@@ -35,6 +49,18 @@ def set_logging(name=LOGGING_NAME, verbose=True):
             }
         }
     })
+
+def load_config(file_path: str, verbose=False) -> dict:
+    yaml_load = YAML(typ="safe")
+    with open(file_path) as yaml_stream:
+        data = yaml_load.load(yaml_stream)
+
+    if verbose:
+        yaml_dumper = YAMLstr()
+        yaml_dumper.indent(mapping=4, sequence=4, offset=4)
+        content = yaml_dumper.dump(data)
+        print(content)
+    return data
 
 set_logging(LOGGING_NAME)
 

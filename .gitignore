@@ -133,4 +133,7 @@ datasets/*
 dataset/*
 !dataset/.gitkeep
 
+weights/*
+!weights/.gitkeep
+
 test.py

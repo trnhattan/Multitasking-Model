@@ -1,0 +1,13 @@
+device: cuda
+model_save: weights/UNet.pth
+training_state_dict: weights/UNet_training_log.json
+img_size: [256, 256]
+hyperparams:
+    lr: 0.001
+    batch_size: 12
+    num_epochs: 50
+early_stopping:
+    monitor: val_loss
+    patience: 7
+    delta: 0
+    verbose: true

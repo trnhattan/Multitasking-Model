@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class ConvBlock(nn.Module):
     def __init__(self, in_channels: int, out_channels: int):
         """Convolutional block used in Encoder and Decoder block
@@ -15,18 +16,17 @@ class ConvBlock(nn.Module):
         super().__init__()
 
         self.conv_block = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels,
-                      kernel_size=3, stride=1, padding='same'),
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding='same'),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
-            nn.Conv2d(out_channels, out_channels,
-                      kernel_size=3, stride=1, padding='same'),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding='same'),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)
         )
 
     def forward(self, x):
         return self.conv_block(x)
+
 
 class Encoder(nn.Module):
     def __init__(self, in_channels: int, out_channels: int):
@@ -46,6 +46,7 @@ class Encoder(nn.Module):
 
     def forward(self, x):
         return self.encoder(x)
+
 
 class Decoder(nn.Module):
     def __init__(self, in_channels: int, out_channels: int):
@@ -76,8 +77,9 @@ class Decoder(nn.Module):
 
         return self.conv_block(x)
 
+
 class UNet(nn.Module):
-    def __init__(self, in_channels=3, out_channels=3):
+    def __init__(self, in_channels: int = 3, out_channels: int = 3):
         """U-Net
 
         Args:
@@ -102,7 +104,7 @@ class UNet(nn.Module):
         self.dec_3 = Decoder(256, 128)
         self.dec_4 = Decoder(128, 64)
 
-        self.out_conv = nn.Conv2d(64, out_channels, kernel_size=1)
+        self.out_conv = nn.Conv2d(64, self.out_channels, kernel_size=1)
 
     def forward(self, x):
         x1 = self.in_conv(x)
