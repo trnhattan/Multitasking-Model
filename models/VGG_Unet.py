@@ -1,8 +1,11 @@
 from typing import Mapping, Any, List
+import copy
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from torch.utils.model_zoo import load_url
 
 import torchvision
 from torchvision.models.vgg import VGG, make_layers
@@ -15,8 +18,6 @@ class VGGEncoder(VGG):
 
         self.in_channels = in_channels
         self.depth = depth
-
-        del self.classifier
 
     def get_stage(self):
         stages = []
@@ -41,11 +42,10 @@ class VGGEncoder(VGG):
         return features
     
     def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True):
-        keys = list(state_dict.keys())
-        for k in keys:
-            if k.startswith("classifier"):
-                state_dict.pop(k, None
-                               )
+        # keys = list(state_dict.keys())
+        # for k in keys:
+        #     if k.startswith("classifier"):
+        #         state_dict.pop(k, None)
         super().load_state_dict(state_dict, strict)
 
 
@@ -99,12 +99,24 @@ class UNetDecoder(nn.Module):
     
 
 class VGG_UNet(nn.Module):
-    def __init__(self, in_channels: int = 3, out_channels: int = 3) -> None:
+    def __init__(self, in_channels: int = 3, seg_out_channels: int = 3, clf_out_channels: int = 1000, encoder_pretrained: bool = True) -> None:
         super().__init__()
         self.in_channels = in_channels
-        self.out_channels = out_channels
+        self.seg_out_channels = seg_out_channels
+        self.clf_out_channels = clf_out_channels
+        self.encoder_pretrained = encoder_pretrained
 
         self.encoder = VGGEncoder(self.in_channels)
+
+        if self.encoder_pretrained:
+            vgg_state_dict = load_url("https://download.pytorch.org/models/vgg16-397923af.pth")
+            self.encoder.load_state_dict(state_dict=vgg_state_dict)
+
+        if self.clf_out_channels != 1000:
+            self.encoder.classifier[-1] = nn.Linear(in_features=4096, out_features=self.clf_out_channels)
+
+        self.classifier_head = copy.deepcopy(self.encoder.classifier)
+        self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
 
         encoder_channels = (64, 128, 256, 512, 512, 512)
         decoder_channels = (256, 128, 64, 32, 16)
@@ -125,26 +137,27 @@ class VGG_UNet(nn.Module):
 
         self.decoder = nn.ModuleList(blocks)
 
-        self.segmentation_head = nn.Conv2d(in_channels=16, out_channels=self.out_channels, kernel_size=3, padding='same')
+        self.segmentation_head = nn.Conv2d(in_channels=16, out_channels=self.seg_out_channels, kernel_size=3, padding='same')
 
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         features = self.encoder(x)
 
-        
+        clf_head = self.avgpool(features[-1])
+        clf_head = torch.flatten(clf_head, 1)
+        clf_head = self.classifier_head(clf_head)
 
         features = features[::-1]
 
         head = features[0]
         skips = features[1:]
 
-        x = self.center(head)
+        segment_head = self.center(head)
 
         for i, dec in enumerate(self.decoder):
             skip = skips[i] if i < len(skips) else None
-            x = dec(x, skip)
+            segment_head = dec(segment_head, skip)
 
-        x = self.segmentation_head(x)
+        segment_head = self.segmentation_head(segment_head)
 
-        return x
-
+        return segment_head, clf_head
